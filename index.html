@@ -3,15 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>BizzHub | Cloud Powered Business Ecosystem</title>
-  
-  <!-- Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>BizzHub | Small Business Ecosystem</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  
   <style>
-    /* --- ALL ORIGINAL CSS PRESERVED --- */
     * {
       margin: 0;
       padding: 0;
@@ -159,9 +155,17 @@
     }
 
     .btn-auth:hover { background: var(--accent-dark); }
+    .btn-auth:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .error-msg {
       color: #e63946;
+      font-size: 0.8rem;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .info-msg {
+      color: #2ecc71;
       font-size: 0.8rem;
       text-align: center;
       margin-top: 10px;
@@ -173,8 +177,6 @@
       width: 100%;
       display: none;
       padding: 0 12px;
-      align-self: flex-start;
-      margin-top: 40px;
     }
 
     .top-bar {
@@ -213,7 +215,9 @@
       border-color: #ef4444;
     }
 
-    .clear-data-btn:hover { background: #dc2626; }
+    .clear-data-btn:hover {
+      background: #dc2626;
+    }
 
     .business-switch {
       background: var(--bg-input);
@@ -368,31 +372,112 @@
 
     .credit-summary span, .credit-summary strong { color: var(--text-primary); }
 
-    .chart-container { position: relative; width: 100%; max-height: 380px; margin-bottom: 20px; }
-    .chart-container canvas { max-height: 380px; width: 100% !important; }
+    /* ---------- ANALYTICS STYLES ---------- */
+    .analytics-sub-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .analytics-sub-tab {
+      padding: 10px 22px;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+
+    .analytics-sub-tab.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .analytics-sub-tab:hover:not(.active) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      max-height: 380px;
+      margin-bottom: 20px;
+    }
+
+    .chart-container canvas {
+      max-height: 380px;
+      width: 100% !important;
+    }
 
     .chart-view { display: none; }
     .chart-view.active-chart { display: block; }
 
-    .analytics-sub-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-    .analytics-sub-tab { padding: 10px 22px; border-radius: 40px; font-weight: 600; font-size: 0.9rem; cursor: pointer; background: var(--bg-input); color: var(--text-secondary); border: 1px solid var(--border); transition: all 0.2s; }
-    .analytics-sub-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .analytics-summary-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
 
-    .analytics-summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 18px; }
-    .analytics-mini-card { background: var(--bg-input); border-radius: 18px; padding: 14px 18px; border: 1px solid var(--border); }
-    .analytics-mini-card .mini-label { font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px; }
-    .analytics-mini-card .mini-value { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
+    .analytics-mini-card {
+      background: var(--bg-input);
+      border-radius: 18px;
+      padding: 14px 18px;
+      border: 1px solid var(--border);
+    }
+
+    .analytics-mini-card .mini-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .analytics-mini-card .mini-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .analytics-mini-card .mini-change {
+      font-size: 0.78rem;
+      margin-top: 2px;
+    }
+
     .mini-change.up { color: #22c55e; }
     .mini-change.down { color: #ef4444; }
+    .mini-change.neutral { color: var(--text-secondary); }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
 
     @media (max-width: 680px) {
       .stats-grid { grid-template-columns: 1fr; }
       .form-row { flex-direction: column; }
+      .credit-summary { flex-direction: column; }
       .analytics-summary-row { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
-<body class="dark">
+<body class="light">
+
+<div id="loadingOverlay" class="loading-overlay"><span>Loading…</span></div>
 
 <!-- LOGIN / REGISTER -->
 <div id="authContainer" class="auth-overlay">
@@ -414,7 +499,7 @@
         <label><i class="fas fa-lock"></i> Password</label>
         <input type="password" id="loginPassword" placeholder="••••••" required>
       </div>
-      <button type="submit" class="btn-auth">Login to Dashboard</button>
+      <button type="submit" class="btn-auth" id="loginSubmitBtn">Login to Dashboard</button>
       <div id="loginError" class="error-msg"></div>
     </form>
   </div>
@@ -429,7 +514,7 @@
         <select id="regBizType" required>
           <option value="grocer">🥬 Grocery Store</option>
           <option value="salon">💇 Salon / Beauty</option>
-          <option value="other">🏢 Other Business</option>
+          <option value="other">🏢 Other</option>
         </select>
       </div>
       <div class="input-group">
@@ -438,10 +523,11 @@
       </div>
       <div class="input-group">
         <label><i class="fas fa-lock"></i> Password</label>
-        <input type="password" id="regPassword" placeholder="••••••" required>
+        <input type="password" id="regPassword" placeholder="•••••• (min 6 characters)" required minlength="6">
       </div>
-      <button type="submit" class="btn-auth">Create Account</button>
+      <button type="submit" class="btn-auth" id="regSubmitBtn">Create Account</button>
       <div id="regError" class="error-msg"></div>
+      <div id="regInfo" class="info-msg"></div>
     </form>
   </div>
 </div>
@@ -451,10 +537,11 @@
   <div class="top-bar">
     <div class="logo">
       <h1></i> BizzHub</h1>
-      <p id="displayBizName">Grow your business network</p>
+      <p>Grow your business network</p>
     </div>
     <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-      <button id="themeToggleBtn" class="theme-toggle"><i class="fas fa-sun"></i> <span>Light</span></button>
+      <button id="clearDataBtn" class="clear-data-btn"><i class="fas fa-trash-alt"></i> <span>Clear Data</span></button>
+      <button id="themeToggleBtn" class="theme-toggle"><i class="fas fa-moon"></i> <span>Dark</span></button>
       <div class="business-switch">
         <select id="businessTypeSelect">
           <option value="grocer">🥬 Grocery</option>
@@ -480,7 +567,9 @@
       <div class="section-title"><i class="fas fa-wallet"></i> Dashboard </div>
       <div class="form-row">
         <input type="text" id="custName" placeholder="Customer name" style="flex:1.5">
-        <select id="productSelect" style="flex:1.5;"><option value="">📦 Select Product</option></select>
+        <select id="productSelect" style="flex:1.5;">
+          <option value="">📦 Select Product</option>
+        </select>
         <input type="number" id="productQuantity" placeholder="Qty" style="flex:0.8" min="1">
         <input type="number" id="amountVal" placeholder="Amount (₹)" style="flex:1">
         <select id="txnType" style="flex:1.5;">
@@ -494,7 +583,7 @@
       <div style="overflow-x: auto;">
         <table id="ledgerTable">
           <thead><tr><th>Customer</th><th>Product</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
-          <tbody id="ledgerBody"></tbody>
+          <tbody id="ledgerBody"><tr><td colspan="6">Loading...</td></tr></tbody>
         </table>
       </div>
       <div class="credit-summary">
@@ -514,14 +603,20 @@
         <button class="analytics-sub-tab" data-chart="monthly">📆 Monthly</button>
         <button class="analytics-sub-tab" data-chart="yearly">📈 Yearly</button>
       </div>
+
+      <!-- Daily View -->
       <div id="dailyView" class="chart-view active-chart">
         <div class="chart-container"><canvas id="dailyChart"></canvas></div>
         <div class="analytics-summary-row" id="dailySummary"></div>
       </div>
+
+      <!-- Monthly View -->
       <div id="monthlyView" class="chart-view">
         <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
         <div class="analytics-summary-row" id="monthlySummary"></div>
       </div>
+
+      <!-- Yearly View -->
       <div id="yearlyView" class="chart-view">
         <div class="chart-container"><canvas id="yearlyChart"></canvas></div>
         <div class="analytics-summary-row" id="yearlySummary"></div>
@@ -533,182 +628,719 @@
   <div id="aboutPane" class="tab-pane">
     <div class="card-panel">
       <div class="section-title"><i class="fas fa-info-circle"></i> About Us</div>
-      <p style="color:var(--text-primary);">BizzHub is a cloud-integrated small-business dashboard designed to track daily transactions and visualize sales trends using Supabase.</p>
+      <p style="color:var(--text-primary);">BizzHub is a lightweight small-business dashboard designed to help local shops, salons and vendors track daily transactions, manage simple inventory, and visualize sales trends. Data is now stored securely in Supabase, synced to your account.</p>
+      <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px;">
+          <strong>Contact</strong>
+          <div style="margin-top:6px; color:var(--text-primary);">Dipesh Shelar (dipesh.shelar25@pccoepune.org)</div>
+          <div style="margin-top:6px; color:var(--text-primary);">Vedika Maramvar (vedika.maramvar25@pccoepune.org)</div>
+        </div>
+        <div style="flex:1; min-width:220px;">
+          <strong>Version</strong>
+          <div style="margin-top:6px; color:var(--text-primary);">v2.0 — Supabase-backed</div>
+          <div style="color:var(--text-primary);">Built with ❤️ for small businesses.</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-  // ---------- SUPABASE CONFIG ----------
-  const SUPABASE_URL = 'https://vulutqdgnpyfuoxjoomt.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_yMF2zfuY8LyyW-656du6vQ_aHegW6_o';
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // ===================================================================
+  // SUPABASE CLIENT SETUP
+  // NOTE: the URL you use for createClient() is the bare project URL,
+  // NOT the /rest/v1/ REST endpoint (supabase-js appends that itself).
+  // ===================================================================
+  const SUPABASE_URL = "https://vulutqdgnpyfuoxjoomt.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_yMF2zfuY8LyyW-656du6vQ_aHegW6_o";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  let currentSession = null;
+  let currentSession = null; // in-memory app state (not to be confused with supabase auth session)
   let dailyChartInstance, monthlyChartInstance, yearlyChartInstance;
 
-  // ---------- DATABASE SYNC ----------
-  async function fetchUserData(email) {
-    const { data: profile } = await supabase.from('profiles').select('*').eq('email', email).single();
-    const { data: ledger } = await supabase.from('ledger').select('*').eq('user_email', email).order('date', { ascending: false });
-    const { data: inventory } = await supabase.from('inventory').select('*').eq('user_email', email).single();
-
-    return {
-      ...profile,
-      ledger: ledger || [],
-      inventory: inventory?.items || {},
-      inventoryLabels: inventory?.labels || {}
-    };
+  function showLoading(show) {
+    document.getElementById("loadingOverlay").style.display = show ? "flex" : "none";
   }
 
-  async function syncInventory() {
+  // ---------- DEFAULTS ----------
+  function getDefaultInventory(bizType) {
+    if (bizType === "grocer") return { rice: 100, dal: 80, oil: 30 };
+    if (bizType === "salon") return { hairColor: 10, shampoo: 20, scissors: 3 };
+    return { gadgets: 50, accessories: 25 };
+  }
+
+  function getDefaultInventoryLabels(bizType) {
+    if (bizType === "grocer") return { rice: 'Rice (kg)', dal: 'Dal (kg)', oil: 'Oil (L)' };
+    if (bizType === "salon") return { hairColor: 'Hair Color', shampoo: 'Shampoo', scissors: 'Scissors' };
+    return { gadgets: 'Gadgets', accessories: 'Accessories' };
+  }
+
+  function getInventoryFieldsForType(bizType) {
+    if (bizType === 'grocer') return [
+      { key: 'rice', label: 'Rice (kg)' },
+      { key: 'dal', label: 'Dal (kg)' },
+      { key: 'oil', label: 'Oil (L)' }
+    ];
+    if (bizType === 'salon') return [
+      { key: 'hairColor', label: 'Hair Color (pcs)' },
+      { key: 'shampoo', label: 'Shampoo (bottles)' },
+      { key: 'scissors', label: 'Scissors (pcs)' }
+    ];
+    return [
+      { key: 'gadgets', label: 'Gadgets (pcs)' },
+      { key: 'accessories', label: 'Accessories (pcs)' }
+    ];
+  }
+
+  // ---------- SUPABASE PERSISTENCE ----------
+  // Persists inventory / biz_type / biz_name changes to the `businesses` row.
+  async function persist() {
     if (!currentSession) return;
-    await supabase.from('inventory').upsert({
-      user_email: currentSession.email,
-      items: currentSession.inventory,
-      labels: currentSession.inventoryLabels
-    });
+    const { error } = await sb.from('businesses').update({
+      biz_name: currentSession.bizName,
+      biz_type: currentSession.bizType,
+      inventory: currentSession.inventory,
+      inventory_labels: currentSession.inventoryLabels
+    }).eq('user_id', currentSession.userId);
+    if (error) console.error("Failed to save business data:", error.message);
   }
 
-  // ---------- UI LOGIC ----------
   function computeTotals(biz) {
     let received = 0, spent = 0, creditOwed = 0;
     biz.ledger.forEach(t => {
-      const amt = Number(t.amount);
-      if (t.txn_type === "received") received += amt;
-      else if (t.txn_type === "spent") spent += amt;
-      else if (t.txn_type === "credit" && !t.credit_settled) creditOwed += amt;
-      else if (t.txn_type === "creditPaid") received += amt;
+      if (t.type === "received") received += t.amount;
+      else if (t.type === "spent") spent += t.amount;
+      else if (t.type === "credit" && !t.creditSettled) creditOwed += t.amount;
+      else if (t.type === "creditPaid") received += t.amount;
     });
     return { received, spent, creditOwed };
   }
 
-  function updateDashboard() {
+  function ensureInventoryLabels(session) {
+    if (!session) return;
+    session.inventoryLabels = session.inventoryLabels && Object.keys(session.inventoryLabels).length
+      ? session.inventoryLabels
+      : getDefaultInventoryLabels(session.bizType);
+  }
+
+  async function clearCurrentBusinessData() {
     if (!currentSession) return;
-    document.getElementById("displayBizName").innerText = currentSession.biz_name;
-    const totals = computeTotals(currentSession);
-    const today = new Date().toISOString().slice(0, 10);
-    const todaySales = currentSession.ledger.filter(t => (t.txn_type === "received" || t.txn_type === "creditPaid") && t.date === today).reduce((s, t) => s + Number(t.amount), 0);
+    if (!confirm("Clear all sales records, history, and charts for this business?")) return;
 
-    const inv = currentSession.inventory || {};
-    const labels = currentSession.inventoryLabels || {};
-    const invSummary = Object.keys(inv).map(k => `${labels[k] || k}: ${inv[k]}`).join(' • ') || 'No stock';
+    showLoading(true);
+    const { error } = await sb.from('transactions').delete().eq('user_id', currentSession.userId);
+    if (error) {
+      showLoading(false);
+      alert("Failed to clear data: " + error.message);
+      return;
+    }
 
-    document.getElementById("statsDashboard").innerHTML = `
-      <div class="stat-card"><div class="stat-title">Today's Sales</div><div class="stat-value">₹${todaySales.toLocaleString()}</div></div>
-      <div class="stat-card"><div class="stat-title">Inventory</div><div class="stat-value" style="font-size:1rem;">${invSummary}</div>
-      <button onclick="toggleInvEditor()" style="margin-top:10px; padding:5px 10px; font-size:0.8rem;">✏️ Edit</button></div>
-      <div class="stat-card"><div class="stat-title">Net Profit</div><div class="stat-value">₹${(totals.received - totals.spent).toLocaleString()}</div></div>
-      <div class="stat-card"><div class="stat-title">Outstanding Udhaar</div><div class="stat-value">₹${totals.creditOwed.toLocaleString()}</div></div>
-    `;
-    updateProductDropdown();
+    currentSession.ledger = [];
+    currentSession.inventory = getDefaultInventory(currentSession.bizType);
+    currentSession.inventoryLabels = getDefaultInventoryLabels(currentSession.bizType);
+    await persist();
+    showLoading(false);
+    updateDashboard();
+    renderLedger();
+    rebuildAllCharts();
+    alert("All records cleared. Your sales dashboard is fresh again.");
+  }
+
+  function escapeHtml(str) { return String(str).replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
+
+  function getInventorySummary(inv, labels, bizType) {
+    const defaultSummary = (() => {
+      if (bizType === 'grocer') return `${labels.rice || 'Rice'}: ${inv.rice || 0}, ${labels.dal || 'Dal'}: ${inv.dal || 0}, ${labels.oil || 'Oil'}: ${inv.oil || 0}`;
+      if (bizType === 'salon') return `${labels.hairColor || 'Hair Color'}: ${inv.hairColor || 0}, ${labels.shampoo || 'Shampoo'}: ${inv.shampoo || 0}, ${labels.scissors || 'Scissors'}: ${inv.scissors || 0}`;
+      return `${labels.gadgets || 'Gadgets'}: ${inv.gadgets || inv.genericStock || 0}, ${labels.accessories || 'Accessories'}: ${inv.accessories || inv.supplies || 0}`;
+    })();
+
+    const extraItems = Object.keys(inv || {})
+      .filter(key => !['rice', 'dal', 'oil', 'hairColor', 'shampoo', 'scissors', 'gadgets', 'accessories'].includes(key))
+      .map(key => `${labels[key] || key}: ${inv[key] || 0}`);
+
+    return [defaultSummary, ...extraItems].filter(Boolean).join(' • ');
+  }
+
+  function getInventoryEntries(session) {
+    const inv = session?.inventory || {};
+    const labels = session?.inventoryLabels || getDefaultInventoryLabels(session?.bizType);
+    const fixedFields = getInventoryFieldsForType(session?.bizType || 'other');
+    const entries = [];
+    const fixedKeys = new Set(fixedFields.map(f => f.key));
+
+    fixedFields.forEach(f => {
+      const hasEntry = Object.prototype.hasOwnProperty.call(inv, f.key);
+      entries.push({ key: f.key, label: labels[f.key] || f.label, qty: hasEntry ? Number(inv[f.key]) || 0 : 0 });
+    });
+
+    Object.keys(inv).forEach(key => {
+      if (!fixedKeys.has(key)) {
+        entries.push({ key, label: labels[key] || key, qty: Number(inv[key]) || 0 });
+      }
+    });
+
+    return entries;
+  }
+
+  function generateInventoryKey(name) {
+    const base = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'product';
+    let key = base;
+    let counter = 1;
+    while (Object.prototype.hasOwnProperty.call(currentSession?.inventory || {}, key)) {
+      key = `${base}_${counter}`;
+      counter += 1;
+    }
+    return key;
   }
 
   function updateProductDropdown() {
-    const sel = document.getElementById("productSelect");
+    const productSelect = document.getElementById("productSelect");
+    if (!productSelect || !currentSession) return;
     const inv = currentSession.inventory || {};
-    const labels = currentSession.inventoryLabels || {};
-    sel.innerHTML = '<option value="">📦 Select Product</option>' + 
-      Object.keys(inv).map(k => `<option value="${k}">${labels[k] || k} (${inv[k]})</option>`).join("");
+    const labels = currentSession.inventoryLabels || getDefaultInventoryLabels(currentSession.bizType);
+    let productOptions = '<option value="">📦 Select Product</option>';
+    Object.keys(inv).forEach(key => {
+      const qty = inv[key] || 0;
+      const label = labels[key] || key;
+      if (qty > 0) {
+        productOptions += `<option value="${key}">${label} (${qty} available)</option>`;
+      } else {
+        productOptions += `<option value="${key}" disabled>${label} (0 available)</option>`;
+      }
+    });
+    productSelect.innerHTML = productOptions;
+  }
+
+  function updateDashboard() {
+    if (!currentSession) return;
+    updateProductDropdown();
+    const totals = computeTotals(currentSession);
+    const today = new Date().toISOString().slice(0, 10);
+    const todaySales = currentSession.ledger.filter(t => (t.type === "received" || t.type === "creditPaid") && t.date === today).reduce((s, t) => s + t.amount, 0);
+
+    const inv = currentSession.inventory || {};
+    const labels = currentSession.inventoryLabels || getDefaultInventoryLabels(currentSession.bizType);
+    const invSummary = getInventorySummary(inv, labels, currentSession.bizType);
+
+    document.getElementById("statsDashboard").innerHTML = `
+      <div class="stat-card"><div class="stat-title"><i class="fas fa-chart-line"></i> Today's Sales</div><div class="stat-value">₹${todaySales.toLocaleString()}</div></div>
+      <div class="stat-card"><div class="stat-title"><i class="fas fa-boxes"></i> Key Inventory</div>
+        <div class="stat-value" style="font-size:1.0rem;">${invSummary}</div>
+        <div style="margin-top:10px;"><button id="editInvBtn" class="theme-toggle" style="padding:6px 10px; font-size:0.9rem;">✏️ Edit Inventory</button></div>
+        <div id="invEditorContainer" style="margin-top:12px; display:none;"></div>
+      </div>
+      <div class="stat-card"><div class="stat-title"><i class="fas fa-rupee-sign"></i> Net Profit</div><div class="stat-value">₹${(totals.received - totals.spent).toLocaleString()}</div></div>
+      <div class="stat-card"><div class="stat-title"><i class="fas fa-hand-holding-usd"></i> Outstanding Udhaar</div><div class="stat-value">₹${totals.creditOwed.toLocaleString()}</div></div>
+    `;
+
+    renderInventoryEditor();
+  }
+
+  async function addInventoryProduct() {
+    if (!currentSession) return;
+    const nameEl = document.getElementById('newInvName');
+    const qtyEl = document.getElementById('newInvQty');
+    const name = nameEl?.value.trim();
+    if (!name) {
+      alert('Please enter a product name.');
+      return;
+    }
+
+    const qty = parseFloat(qtyEl?.value);
+    const key = generateInventoryKey(name);
+    currentSession.inventory = currentSession.inventory || {};
+    currentSession.inventoryLabels = currentSession.inventoryLabels || {};
+    currentSession.inventory[key] = isNaN(qty) ? 0 : Math.max(0, qty);
+    currentSession.inventoryLabels[key] = name;
+
+    await persist();
+    updateDashboard();
+    renderLedger();
+    rebuildAllCharts();
+  }
+
+  function renderInventoryEditor() {
+    const container = document.getElementById('invEditorContainer');
+    if (!container || !currentSession) return;
+    const entries = getInventoryEntries(currentSession);
+    const formHtml = entries.map(entry => `
+      <div style="margin:10px 0; display:grid; gap:8px; grid-template-columns: 1fr 1fr; align-items:start;">
+        <div>
+          <label style="display:block; font-weight:600; margin-bottom:6px;">Product name</label>
+          <input type="text" id="inv_label_${entry.key}" value="${entry.label}" style="width:100%; padding:8px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary);">
+        </div>
+        <div>
+          <label style="display:block; font-weight:600; margin-bottom:6px;">Quantity</label>
+          <input type="number" id="inv_qty_${entry.key}" value="${entry.qty}" style="width:100%; padding:8px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary);" min="0">
+        </div>
+      </div>`).join('');
+
+    container.innerHTML = `
+      <div id="invForm" style="background:var(--bg-input); padding:12px; border-radius:12px; border:1px solid var(--border);">
+        ${formHtml}
+        <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
+          <div style="font-weight:600; margin-bottom:8px;">Add product to inventory</div>
+          <div style="display:grid; gap:8px; grid-template-columns: 1fr 100px auto; align-items:center;">
+            <input type="text" id="newInvName" placeholder="Product name" style="width:100%; padding:8px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary);">
+            <input type="number" id="newInvQty" placeholder="Qty" min="0" style="width:100%; padding:8px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary);">
+            <button id="addInvProductBtn" class="btn-auth" style="padding:8px 12px; border-radius:12px; font-size:0.95rem;">Add</button>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px;"><button id="saveInvBtn" class="btn-auth" style="padding:8px 12px; border-radius:12px; font-size:0.95rem;">Save</button><button id="cancelInvBtn" class="theme-toggle" style="padding:8px 12px; border-radius:12px;">Cancel</button></div>
+      </div>
+    `;
+
+    container.style.display = 'none';
+
+    const editBtn = document.getElementById('editInvBtn');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        container.style.display = container.style.display === 'none' ? 'block' : 'none';
+      });
+    }
+
+    const saveBtn = document.getElementById('saveInvBtn');
+    const cancelBtn = document.getElementById('cancelInvBtn');
+    const addBtn = document.getElementById('addInvProductBtn');
+    const newInvName = document.getElementById('newInvName');
+    if (cancelBtn) cancelBtn.addEventListener('click', () => { container.style.display = 'none'; });
+    if (saveBtn) saveBtn.addEventListener('click', () => updateInventoryFromForm(entries));
+    if (addBtn) addBtn.addEventListener('click', addInventoryProduct);
+    if (newInvName) newInvName.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        addInventoryProduct();
+      }
+    });
+  }
+
+  async function updateInventoryFromForm(entries) {
+    if (!currentSession) return;
+    currentSession.inventory = currentSession.inventory || {};
+    currentSession.inventoryLabels = currentSession.inventoryLabels || {};
+    entries.forEach(entry => {
+      const qtyEl = document.getElementById('inv_qty_' + entry.key);
+      const labelEl = document.getElementById('inv_label_' + entry.key);
+      if (qtyEl) {
+        const v = parseFloat(qtyEl.value);
+        currentSession.inventory[entry.key] = isNaN(v) ? 0 : Math.max(0, v);
+      }
+      if (labelEl) {
+        currentSession.inventoryLabels[entry.key] = labelEl.value.trim() || entry.label;
+      }
+    });
+    await persist();
+    updateDashboard();
+    renderLedger();
+    rebuildAllCharts();
+    const container = document.getElementById('invEditorContainer'); if (container) container.style.display = 'none';
   }
 
   function renderLedger() {
     const tbody = document.getElementById("ledgerBody");
-    tbody.innerHTML = currentSession.ledger.map(t => {
-      let typeLabel = t.txn_type === "received" ? "💰 Received" : t.txn_type === "spent" ? "💸 Spent" : t.txn_type === "credit" ? "📝 Udhaar" : "✅ Repaid";
-      let status = t.txn_type === "credit" ? (t.credit_settled ? "<span class='badge-credit badge-paid'>Settled</span>" : "<span class='badge-credit'>Unpaid</span>") : "-";
-      return `<tr><td>${t.customer}</td><td>${t.product || '-'}</td><td>${typeLabel}</td><td>₹${Number(t.amount).toLocaleString()}</td><td>${status}</td><td>${t.date}</td></tr>`;
+    if (!currentSession.ledger.length) { tbody.innerHTML = "<tr><td colspan='6'>No transactions</td></tr>"; return; }
+    tbody.innerHTML = currentSession.ledger.slice().reverse().slice(0, 50).map(t => {
+      let typeLabel = t.type === "received" ? "💰 Received" : t.type === "spent" ? "💸 Spent" : t.type === "credit" ? "📝 Udhaar" : "✅ Credit Repaid";
+      let status = t.type === "credit" ? (t.creditSettled ? "<span class='badge-credit badge-paid'>Settled</span>" : "<span class='badge-credit'>Unpaid</span>") : (t.type === "creditPaid" ? "<span class='badge-credit badge-paid'>Repaid</span>" : "-");
+      const productDisplay = t.product ? `${escapeHtml(t.product)} (x${t.productQuantity || 1})` : "-";
+      return `<tr><td>${escapeHtml(t.customer)}</td><td>${productDisplay}</td><td>${typeLabel}</td><td>₹${t.amount.toLocaleString()}</td><td>${status}</td><td>${t.date}</td></tr>`;
     }).join("");
-    
     const totals = computeTotals(currentSession);
     document.getElementById("totalReceivedSum").innerText = `₹${totals.received.toLocaleString()}`;
     document.getElementById("totalSpentSum").innerText = `₹${totals.spent.toLocaleString()}`;
     document.getElementById("totalCreditOwed").innerText = `₹${totals.creditOwed.toLocaleString()}`;
   }
 
+  // ---------- TRANSACTIONS (now backed by the `transactions` table) ----------
   async function addTransaction() {
     const cust = document.getElementById("custName").value.trim();
     const amount = parseFloat(document.getElementById("amountVal").value);
     const txnType = document.getElementById("txnType").value;
-    const product = document.getElementById("productSelect").value;
-    const qty = parseInt(document.getElementById("productQuantity").value) || 1;
+    const product = document.getElementById("productSelect").value.trim();
+    const productQty = parseInt(document.getElementById("productQuantity").value) || 0;
+    if (!cust || isNaN(amount) || amount <= 0) { alert("Enter valid customer & amount"); return; }
+    const today = new Date().toISOString().slice(0, 10);
 
-    if (!cust || isNaN(amount)) return alert("Invalid inputs");
-
-    const entry = {
-      user_email: currentSession.email,
-      customer: cust,
-      amount: amount,
-      txn_type: txnType,
-      product: product || null,
-      product_quantity: qty,
-      date: new Date().toISOString().slice(0, 10),
-      credit_settled: txnType === "creditPaid"
-    };
-
-    const { error } = await supabase.from('ledger').insert([entry]);
-    if (error) return alert("Sync Error: " + error.message);
-
-    if (txnType === "received" && product && currentSession.inventory[product]) {
-      currentSession.inventory[product] -= qty;
-      await syncInventory();
+    let relatedCreditRow = null;
+    if (txnType === "creditPaid") {
+      relatedCreditRow = currentSession.ledger.find(l => l.type === "credit" && l.customer === cust && !l.creditSettled);
+      if (!relatedCreditRow) { alert("No open Udhaar for this customer."); return; }
     }
 
-    const updated = await fetchUserData(currentSession.email);
-    currentSession = updated;
+    const addBtn = document.getElementById("addTransactionBtn");
+    addBtn.disabled = true;
+
+    const payload = {
+      user_id: currentSession.userId,
+      customer: cust,
+      amount,
+      txn_date: today,
+      type: txnType,
+      product: product || null,
+      product_quantity: product ? (productQty || 1) : null,
+      credit_settled: txnType === "credit" ? false : (txnType === "creditPaid" ? true : null),
+      related_credit: relatedCreditRow ? relatedCreditRow.id : null
+    };
+
+    const { data: inserted, error } = await sb.from('transactions').insert(payload).select().single();
+    addBtn.disabled = false;
+    if (error) { alert("Failed to save transaction: " + error.message); return; }
+
+    const newEntry = {
+      id: inserted.id,
+      customer: cust,
+      product: product || undefined,
+      productQuantity: product ? (productQty || 1) : undefined,
+      amount,
+      date: today,
+      type: txnType,
+      creditSettled: payload.credit_settled,
+      relatedCredit: payload.related_credit
+    };
+
+    // Deduct sold product from inventory
+    if (product && txnType === "received" && currentSession.inventory[product] !== undefined) {
+      currentSession.inventory[product] -= productQty || 1;
+      if (currentSession.inventory[product] < 0) currentSession.inventory[product] = 0;
+      await persist();
+    }
+
+    // Settle / partially settle the related credit row, both locally and in the DB
+    if (txnType === "creditPaid" && relatedCreditRow) {
+      if (amount >= relatedCreditRow.amount) {
+        relatedCreditRow.creditSettled = true;
+      } else {
+        relatedCreditRow.amount -= amount;
+      }
+      await sb.from('transactions').update({
+        amount: relatedCreditRow.amount,
+        credit_settled: relatedCreditRow.creditSettled
+      }).eq('id', relatedCreditRow.id);
+    }
+
+    currentSession.ledger.push(newEntry);
     renderLedger();
     updateDashboard();
     rebuildAllCharts();
+    document.getElementById("custName").value = "";
+    document.getElementById("amountVal").value = "";
+    document.getElementById("productSelect").value = "";
+    document.getElementById("productQuantity").value = "";
   }
 
-  // ---------- AUTH ACTIONS ----------
-  document.getElementById("loginFormElement").addEventListener("submit", async e => {
-    e.preventDefault();
-    const email = document.getElementById("loginEmail").value;
-    const pass = document.getElementById("loginPassword").value;
-    
-    const { data: user } = await supabase.from('profiles').select('*').eq('email', email).eq('password', pass).single();
-    if (user) {
-      currentSession = await fetchUserData(email);
-      document.getElementById("authContainer").style.display = "none";
-      document.getElementById("mainApp").style.display = "block";
-      updateDashboard();
-      renderLedger();
-    } else {
-      document.getElementById("loginError").innerText = "Invalid login.";
-    }
-  });
-
-  document.getElementById("registerFormElement").addEventListener("submit", async e => {
-    e.preventDefault();
-    const email = document.getElementById("regEmail").value;
-    const profile = {
-      email,
-      password: document.getElementById("regPassword").value,
-      biz_name: document.getElementById("regBizName").value,
-      biz_type: document.getElementById("regBizType").value
-    };
-
-    const { error } = await supabase.from('profiles').insert([profile]);
-    if (!error) {
-      // Create empty inventory
-      const inv = profile.biz_type === "grocer" ? { rice: 100, dal: 50 } : { service: 10 };
-      await supabase.from('inventory').insert([{ user_email: email, items: inv, labels: inv }]);
-      alert("Success! Please login.");
-      location.reload();
-    } else {
-      document.getElementById("regError").innerText = "Error: Email might exist.";
-    }
-  });
-
-  // ---------- CHARTING (PRESERVED) ----------
+  // ---------- CHART HELPERS ----------
   function getChartColors() {
-    const isDark = document.body.classList.contains('dark');
+    const style = getComputedStyle(document.body);
     return {
-      accent: '#438bff',
-      textColor: isDark ? '#9CA3AF' : '#4A5B6E',
-      gridColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+      accent: style.getPropertyValue('--accent').trim(),
+      accentLight: style.getPropertyValue('--accent-light').trim(),
+      gridColor: style.getPropertyValue('--chart-grid').trim(),
+      textColor: style.getPropertyValue('--chart-text').trim(),
+      gradientStart: style.getPropertyValue('--gradient-start').trim(),
+      gradientEnd: style.getPropertyValue('--gradient-end').trim(),
+      barHover: style.getPropertyValue('--bar-hover').trim(),
+      lineSecondary: style.getPropertyValue('--line-secondary').trim(),
+      lineTertiary: style.getPropertyValue('--line-tertiary').trim(),
     };
+  }
+
+  function createGradient(ctx, colorStart, colorEnd) {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+    gradient.addColorStop(0, colorStart);
+    gradient.addColorStop(1, colorEnd);
+    return gradient;
+  }
+
+  function pctChange(curr, prev) {
+    if (prev === 0) return curr > 0 ? { val: "+100%", cls: "up" } : { val: "—", cls: "neutral" };
+    const pct = ((curr - prev) / prev * 100).toFixed(1);
+    return { val: (pct >= 0 ? "+" : "") + pct + "%", cls: pct >= 0 ? "up" : "down" };
+  }
+
+  // ---------- DAILY CHART ----------
+  function buildDailyChart() {
+    const ctx = document.getElementById("dailyChart").getContext("2d");
+    const colors = getChartColors();
+    const today = new Date();
+    const labels = [], revenueData = [], expenseData = [];
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const dayLabel = d.getDate() + " " + d.toLocaleString('default', { month: 'short' });
+      labels.push(dayLabel);
+      let rev = 0, exp = 0;
+      if (currentSession && currentSession.ledger) {
+        currentSession.ledger.forEach(t => {
+          if (t.date === dateStr) {
+            if (t.type === "received" || t.type === "creditPaid") rev += t.amount;
+            else if (t.type === "spent") exp += t.amount;
+          }
+        });
+      }
+      revenueData.push(rev);
+      expenseData.push(exp);
+    }
+
+    if (dailyChartInstance) dailyChartInstance.destroy();
+    dailyChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Revenue (₹)',
+            data: revenueData,
+            backgroundColor: colors.accent + 'CC',
+            hoverBackgroundColor: colors.barHover,
+            borderRadius: 6,
+            borderSkipped: false,
+          },
+          {
+            label: 'Expenses (₹)',
+            data: expenseData,
+            backgroundColor: '#ef444488',
+            hoverBackgroundColor: '#ef4444CC',
+            borderRadius: 6,
+            borderSkipped: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { labels: { color: colors.textColor, font: { weight: 600 } } },
+          tooltip: {
+            backgroundColor: '#1E1E1EEE',
+            titleColor: '#fff',
+            bodyColor: '#ccc',
+            borderColor: colors.accent,
+            borderWidth: 1,
+            cornerRadius: 12,
+            callbacks: { label: ctx => ` ${ctx.dataset.label}: ₹${ctx.parsed.y.toLocaleString()}` }
+          }
+        },
+        scales: {
+          x: { ticks: { color: colors.textColor, maxRotation: 45, font: { size: 10 } }, grid: { color: colors.gridColor } },
+          y: { ticks: { color: colors.textColor, callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) }, grid: { color: colors.gridColor } }
+        }
+      }
+    });
+
+    const todayRev = revenueData[0] || 0;
+    const todayExp = expenseData[0] || 0;
+    const weekRev = revenueData.reduce((a, b) => a + b, 0);
+    const weekExp = expenseData.reduce((a, b) => a + b, 0);
+    document.getElementById("dailySummary").innerHTML = `
+      <div class="analytics-mini-card"><div class="mini-label">Today's Revenue</div><div class="mini-value">₹${todayRev.toLocaleString()}</div></div>
+      <div class="analytics-mini-card"><div class="mini-label">Today's Expense</div><div class="mini-value">₹${todayExp.toLocaleString()}</div></div>
+      <div class="analytics-mini-card"><div class="mini-label">7-Day Revenue</div><div class="mini-value">₹${weekRev.toLocaleString()}</div></div>
+      <div class="analytics-mini-card"><div class="mini-label">7-Day Profit</div><div class="mini-value">₹${(weekRev - weekExp).toLocaleString()}</div></div>
+    `;
+  }
+
+  // ---------- MONTHLY CHART ----------
+  function buildMonthlyChart() {
+    const ctx = document.getElementById("monthlyChart").getContext("2d");
+    const colors = getChartColors();
+    const today = new Date();
+    const labels = [], revenueData = [], expenseData = [], profitData = [];
+
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleString('default', { month: 'short' }) + " '" + String(d.getFullYear()).slice(2);
+      labels.push(label);
+      let rev = 0, exp = 0;
+      if (currentSession && currentSession.ledger) {
+        currentSession.ledger.forEach(t => {
+          if (t.date && t.date.startsWith(key)) {
+            if (t.type === "received" || t.type === "creditPaid") rev += t.amount;
+            else if (t.type === "spent") exp += t.amount;
+          }
+        });
+      }
+      revenueData.push(rev);
+      expenseData.push(exp);
+      profitData.push(rev - exp);
+    }
+
+    const gradient = createGradient(ctx, colors.gradientStart, colors.gradientEnd);
+
+    if (monthlyChartInstance) monthlyChartInstance.destroy();
+    monthlyChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Revenue (₹)',
+            data: revenueData,
+            borderColor: colors.accent,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            pointBackgroundColor: colors.accent,
+            borderWidth: 3,
+          },
+          {
+            label: 'Expenses (₹)',
+            data: expenseData,
+            borderColor: '#ef4444',
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            pointBackgroundColor: '#ef4444',
+            borderWidth: 2,
+            borderDash: [6, 3],
+          },
+          {
+            label: 'Profit (₹)',
+            data: profitData,
+            borderColor: colors.lineTertiary,
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            pointBackgroundColor: colors.lineTertiary,
+            borderWidth: 2,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { labels: { color: colors.textColor, font: { weight: 600 } } },
+          tooltip: {
+            backgroundColor: '#1E1E1EEE',
+            titleColor: '#fff',
+            bodyColor: '#ccc',
+            borderColor: colors.accent,
+            borderWidth: 1,
+            cornerRadius: 12,
+            callbacks: { label: ctx => ` ${ctx.dataset.label}: ₹${ctx.parsed.y.toLocaleString()}` }
+          }
+        },
+        scales: {
+          x: { ticks: { color: colors.textColor, font: { size: 11 } }, grid: { color: colors.gridColor } },
+          y: { ticks: { color: colors.textColor, callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) }, grid: { color: colors.gridColor } }
+        }
+      }
+    });
+
+    const thisMonth = revenueData[11];
+    const lastMonth = revenueData[10];
+    const avgMonthly = Math.round(revenueData.reduce((a, b) => a + b, 0) / 12);
+    const bestMonth = Math.max(...revenueData);
+    const bestIdx = revenueData.indexOf(bestMonth);
+    const change = pctChange(thisMonth, lastMonth);
+    document.getElementById("monthlySummary").innerHTML = `
+      <div class="analytics-mini-card"><div class="mini-label">This Month</div><div class="mini-value">₹${thisMonth.toLocaleString()}</div><div class="mini-change ${change.cls}">vs last month ${change.val}</div></div>
+      <div class="analytics-mini-card"><div class="mini-label">Avg Monthly</div><div class="mini-value">₹${avgMonthly.toLocaleString()}</div></div>
+      <div class="analytics-mini-card"><div class="mini-label">Best Month</div><div class="mini-value">₹${bestMonth.toLocaleString()}</div><div class="mini-change neutral">${labels[bestIdx]}</div></div>
+      <div class="analytics-mini-card"><div class="mini-label">12-Month Total</div><div class="mini-value">₹${revenueData.reduce((a,b)=>a+b,0).toLocaleString()}</div></div>
+    `;
+  }
+
+  // ---------- YEARLY CHART ----------
+  function buildYearlyChart() {
+    const ctx = document.getElementById("yearlyChart").getContext("2d");
+    const colors = getChartColors();
+    const startYear = new Date().getFullYear();
+    const years = [startYear, startYear + 1, startYear + 2, startYear + 3];
+    const revenueData = [], expenseData = [], profitData = [];
+
+    years.forEach(yr => {
+      let rev = 0, exp = 0;
+      if (currentSession && currentSession.ledger) {
+        currentSession.ledger.forEach(t => {
+          if (t.date && t.date.startsWith(String(yr))) {
+            if (t.type === "received" || t.type === "creditPaid") rev += t.amount;
+            else if (t.type === "spent") exp += t.amount;
+          }
+        });
+      }
+      revenueData.push(rev);
+      expenseData.push(exp);
+      profitData.push(rev - exp);
+    });
+
+    if (yearlyChartInstance) yearlyChartInstance.destroy();
+    yearlyChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: years.map(String),
+        datasets: [
+          {
+            label: 'Revenue (₹)',
+            data: revenueData,
+            backgroundColor: colors.accent + 'CC',
+            hoverBackgroundColor: colors.barHover,
+            borderRadius: 8,
+            borderSkipped: false,
+          },
+          {
+            label: 'Expenses (₹)',
+            data: expenseData,
+            backgroundColor: '#ef444488',
+            hoverBackgroundColor: '#ef4444CC',
+            borderRadius: 8,
+            borderSkipped: false,
+          },
+          {
+            label: 'Profit (₹)',
+            data: profitData,
+            backgroundColor: colors.lineTertiary + '88',
+            hoverBackgroundColor: colors.lineTertiary + 'CC',
+            borderRadius: 8,
+            borderSkipped: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { labels: { color: colors.textColor, font: { weight: 600 } } },
+          tooltip: {
+            backgroundColor: '#1E1E1EEE',
+            titleColor: '#fff',
+            bodyColor: '#ccc',
+            borderColor: colors.accent,
+            borderWidth: 1,
+            cornerRadius: 12,
+            callbacks: { label: ctx => ` ${ctx.dataset.label}: ₹${ctx.parsed.y.toLocaleString()}` }
+          }
+        },
+        scales: {
+          x: { ticks: { color: colors.textColor, font: { size: 13, weight: 700 } }, grid: { color: colors.gridColor } },
+          y: { ticks: { color: colors.textColor, callback: v => '₹' + (v >= 100000 ? (v/100000).toFixed(1) + 'L' : v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) }, grid: { color: colors.gridColor } }
+        }
+      }
+    });
+
+    const yearFirst = revenueData[0];
+    const yearLast = revenueData[3];
+    const totalAll = revenueData.reduce((a, b) => a + b, 0);
+    const totalProfit = profitData.reduce((a, b) => a + b, 0);
+    const change = pctChange(yearLast, yearFirst);
+    document.getElementById("yearlySummary").innerHTML = `
+      <div class="analytics-mini-card"><div class="mini-label">${years[0]} Revenue</div><div class="mini-value">₹${yearFirst.toLocaleString()}</div></div>
+      <div class="analytics-mini-card"><div class="mini-label">${years[3]} Revenue</div><div class="mini-value">₹${yearLast.toLocaleString()}</div><div class="mini-change ${change.cls}">vs ${years[0]} ${change.val}</div></div>
+      <div class="analytics-mini-card"><div class="mini-label">Total 4-Year Revenue</div><div class="mini-value">₹${totalAll.toLocaleString()}</div></div>
+      <div class="analytics-mini-card"><div class="mini-label">Total 4-Year Profit</div><div class="mini-value">₹${totalProfit.toLocaleString()}</div></div>
+    `;
   }
 
   function rebuildAllCharts() {
@@ -717,50 +1349,222 @@
     buildYearlyChart();
   }
 
-  function buildDailyChart() {
-    const ctx = document.getElementById("dailyChart").getContext("2d");
-    const colors = getChartColors();
-    const last7Days = [...Array(7)].map((_, i) => {
-      const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().slice(0,10);
-    }).reverse();
-
-    const data = last7Days.map(day => currentSession.ledger.filter(t => t.date === day && t.txn_type === 'received').reduce((a,b)=>a+Number(b.amount),0));
-
-    if (dailyChartInstance) dailyChartInstance.destroy();
-    dailyChartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: last7Days, datasets: [{ label: 'Revenue', data, backgroundColor: colors.accent }] },
-      options: { responsive: true, scales: { x: { ticks: { color: colors.textColor } }, y: { ticks: { color: colors.textColor } } } }
-    });
-  }
-
-  function buildMonthlyChart() { /* Standard Chart Implementation */ }
-  function buildYearlyChart() { /* Standard Chart Implementation */ }
-
-  // ---------- THEME & TABS ----------
-  document.getElementById("themeToggleBtn").addEventListener("click", () => {
-    const body = document.body;
-    if (body.classList.contains('dark')) {
-      body.classList.replace('dark', 'light');
-      document.getElementById("themeToggleBtn").innerHTML = '<i class="fas fa-moon"></i> <span>Dark</span>';
-    } else {
-      body.classList.replace('light', 'dark');
-      document.getElementById("themeToggleBtn").innerHTML = '<i class="fas fa-sun"></i> <span>Light</span>';
-    }
-    rebuildAllCharts();
-  });
-
+  // ---------- TABS ----------
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".tab-btn, .tab-pane").forEach(el => el.classList.remove("active", "active-pane"));
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      document.getElementById(btn.dataset.tab + "Pane").classList.add("active-pane");
-      if (btn.dataset.tab === 'analytics') rebuildAllCharts();
+      document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active-pane"));
+      document.getElementById(btn.getAttribute("data-tab") + "Pane").classList.add("active-pane");
+      if (btn.getAttribute("data-tab") === "analytics") rebuildAllCharts();
     });
+  });
+
+  document.querySelectorAll(".analytics-sub-tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".analytics-sub-tab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".chart-view").forEach(v => v.classList.remove("active-chart"));
+      document.getElementById(btn.getAttribute("data-chart") + "View").classList.add("active-chart");
+      setTimeout(() => {
+        const key = btn.getAttribute("data-chart");
+        if (key === 'daily') buildDailyChart();
+        else if (key === 'monthly') buildMonthlyChart();
+        else if (key === 'yearly') buildYearlyChart();
+      }, 50);
+    });
+  });
+
+  // ---------- THEME ----------
+  const themeToggleBtn = document.getElementById("themeToggleBtn");
+  const clearDataBtn = document.getElementById("clearDataBtn");
+  function setTheme(theme) {
+    if (theme === 'light') {
+      document.body.classList.remove('dark');
+      document.body.classList.add('light');
+      themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i> <span>Light</span>';
+    } else {
+      document.body.classList.remove('light');
+      document.body.classList.add('dark');
+      themeToggleBtn.innerHTML = '<i class="fas fa-moon"></i> <span>Dark</span>';
+    }
+    if (currentSession) setTimeout(rebuildAllCharts, 100);
+  }
+  themeToggleBtn.addEventListener("click", () => {
+    setTheme(document.body.classList.contains('dark') ? 'light' : 'dark');
+  });
+
+  clearDataBtn.addEventListener("click", clearCurrentBusinessData);
+  setTheme('dark');
+
+  // ---------- AUTH TABS ----------
+  document.querySelectorAll(".auth-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".auth-tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById("loginForm").classList.toggle("active-form", tab.getAttribute("data-auth") === "login");
+      document.getElementById("registerForm").classList.toggle("active-form", tab.getAttribute("data-auth") === "register");
+    });
+  });
+
+  // ---------- SUPABASE AUTH: LOGIN ----------
+  document.getElementById("loginFormElement").addEventListener("submit", async e => {
+    e.preventDefault();
+    const email = document.getElementById("loginEmail").value.trim();
+    const pwd = document.getElementById("loginPassword").value;
+    const errEl = document.getElementById("loginError");
+    errEl.innerText = "";
+    const btn = document.getElementById("loginSubmitBtn");
+    btn.disabled = true;
+
+    const { error } = await sb.auth.signInWithPassword({ email, password: pwd });
+    btn.disabled = false;
+    if (error) { errEl.innerText = error.message; return; }
+    await loadDashboard();
+  });
+
+  // ---------- SUPABASE AUTH: REGISTER ----------
+  document.getElementById("registerFormElement").addEventListener("submit", async e => {
+    e.preventDefault();
+    const bizName = document.getElementById("regBizName").value.trim();
+    const bizType = document.getElementById("regBizType").value;
+    const email = document.getElementById("regEmail").value.trim();
+    const pwd = document.getElementById("regPassword").value;
+    const errEl = document.getElementById("regError");
+    const infoEl = document.getElementById("regInfo");
+    errEl.innerText = "";
+    infoEl.innerText = "";
+    const btn = document.getElementById("regSubmitBtn");
+    btn.disabled = true;
+
+    const { data, error } = await sb.auth.signUp({ email, password: pwd });
+    if (error) { btn.disabled = false; errEl.innerText = error.message; return; }
+
+    const userId = data.user?.id;
+    if (userId) {
+      const { error: insertErr } = await sb.from('businesses').insert({
+        user_id: userId,
+        biz_name: bizName,
+        biz_type: bizType,
+        inventory: getDefaultInventory(bizType),
+        inventory_labels: getDefaultInventoryLabels(bizType)
+      });
+      if (insertErr) { btn.disabled = false; errEl.innerText = insertErr.message; return; }
+    }
+
+    btn.disabled = false;
+
+    if (data.session) {
+      // Email confirmation is off -> user is already logged in
+      await loadDashboard();
+    } else {
+      // Email confirmation is on -> user must confirm before logging in
+      infoEl.innerText = "Registered! Check your email to confirm your account, then log in.";
+      document.querySelector(".auth-tab[data-auth='login']").click();
+      document.getElementById("loginEmail").value = email;
+    }
+  });
+
+  // ---------- LOAD DASHBOARD FROM SUPABASE ----------
+  async function loadDashboard() {
+    showLoading(true);
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) { showLoading(false); return; }
+
+    let { data: biz } = await sb.from('businesses').select('*').eq('user_id', user.id).single();
+
+    if (!biz) {
+      // e.g. user existed in auth but never got a businesses row for some reason
+      const defaultType = 'other';
+      const insertPayload = {
+        user_id: user.id,
+        biz_name: user.email.split('@')[0],
+        biz_type: defaultType,
+        inventory: getDefaultInventory(defaultType),
+        inventory_labels: getDefaultInventoryLabels(defaultType)
+      };
+      const { data: newBiz } = await sb.from('businesses').insert(insertPayload).select().single();
+      biz = newBiz;
+    }
+
+    const { data: txns } = await sb.from('transactions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('id', { ascending: true });
+
+    currentSession = {
+      userId: user.id,
+      email: user.email,
+      bizName: biz.biz_name,
+      bizType: biz.biz_type,
+      inventory: biz.inventory || {},
+      inventoryLabels: biz.inventory_labels || {},
+      ledger: (txns || []).map(t => ({
+        id: t.id,
+        customer: t.customer,
+        product: t.product || undefined,
+        productQuantity: t.product_quantity || undefined,
+        type: t.type,
+        amount: Number(t.amount),
+        date: t.txn_date,
+        creditSettled: t.credit_settled,
+        relatedCredit: t.related_credit
+      }))
+    };
+
+    ensureInventoryLabels(currentSession);
+    showLoading(false);
+    document.getElementById("authContainer").style.display = "none";
+    document.getElementById("mainApp").style.display = "block";
+    document.getElementById("businessTypeSelect").value = currentSession.bizType;
+    updateDashboard();
+    updateProductDropdown();
+    renderLedger();
+    rebuildAllCharts();
+  }
+
+  // ---------- LOGOUT ----------
+  document.getElementById("logoutMainBtn").addEventListener("click", async () => {
+    await sb.auth.signOut();
+    currentSession = null;
+    if (dailyChartInstance) dailyChartInstance.destroy();
+    if (monthlyChartInstance) monthlyChartInstance.destroy();
+    if (yearlyChartInstance) yearlyChartInstance.destroy();
+    dailyChartInstance = monthlyChartInstance = yearlyChartInstance = null;
+    document.getElementById("mainApp").style.display = "none";
+    document.getElementById("authContainer").style.display = "block";
   });
 
   document.getElementById("addTransactionBtn").addEventListener("click", addTransaction);
-  document.getElementById("logoutMainBtn").onclick = () => location.reload();
+
+  document.getElementById("businessTypeSelect").addEventListener("change", async e => {
+    if (currentSession) {
+      currentSession.bizType = e.target.value;
+      if (currentSession.bizType === "grocer" && !currentSession.inventory.rice) currentSession.inventory = getDefaultInventory("grocer");
+      else if (currentSession.bizType === "salon" && !currentSession.inventory.hairColor) currentSession.inventory = getDefaultInventory("salon");
+      else if (currentSession.bizType === "other" && !currentSession.inventory.gadgets) currentSession.inventory = getDefaultInventory("other");
+      await persist();
+      updateDashboard();
+      updateProductDropdown();
+    }
+  });
+
+  // ---------- BOOTSTRAP: resume an existing Supabase session on page load ----------
+  (async () => {
+    showLoading(true);
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      await loadDashboard();
+    } else {
+      showLoading(false);
+    }
+  })();
+
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_IN' && !currentSession) {
+      loadDashboard();
+    }
+  });
 </script>
 </body>
 </html>
