@@ -517,6 +517,10 @@
           <option value="other">🏢 Other</option>
         </select>
       </div>
+      <div class="input-group" id="regBizTypeOtherGroup" style="display:none;">
+        <label><i class="fas fa-pen"></i> Please specify your business type</label>
+        <input type="text" id="regBizTypeOther" placeholder="e.g. Hardware Store, Bakery, Tailor Shop">
+      </div>
       <div class="input-group">
         <label><i class="fas fa-envelope"></i> Email</label>
         <input type="email" id="regEmail" placeholder="owner@example.com" required>
@@ -548,6 +552,7 @@
           <option value="salon">💇 Salon</option>
           <option value="other">🏢 Other</option>
         </select>
+        <input type="text" id="businessTypeOtherInput" placeholder="Type your business category" style="display:none; min-width:180px;">
         <button id="logoutMainBtn" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
       </div>
     </div>
@@ -667,34 +672,13 @@
   }
 
   // ---------- DEFAULTS ----------
-  function getDefaultInventory(bizType) {
-    if (bizType === "grocer") return { rice: 100, dal: 80, oil: 30 };
-    if (bizType === "salon") return { hairColor: 10, shampoo: 20, scissors: 3 };
-    return { gadgets: 50, accessories: 25 };
-  }
-
-  function getDefaultInventoryLabels(bizType) {
-    if (bizType === "grocer") return { rice: 'Rice (kg)', dal: 'Dal (kg)', oil: 'Oil (L)' };
-    if (bizType === "salon") return { hairColor: 'Hair Color', shampoo: 'Shampoo', scissors: 'Scissors' };
-    return { gadgets: 'Gadgets', accessories: 'Accessories' };
-  }
-
-  function getInventoryFieldsForType(bizType) {
-    if (bizType === 'grocer') return [
-      { key: 'rice', label: 'Rice (kg)' },
-      { key: 'dal', label: 'Dal (kg)' },
-      { key: 'oil', label: 'Oil (L)' }
-    ];
-    if (bizType === 'salon') return [
-      { key: 'hairColor', label: 'Hair Color (pcs)' },
-      { key: 'shampoo', label: 'Shampoo (bottles)' },
-      { key: 'scissors', label: 'Scissors (pcs)' }
-    ];
-    return [
-      { key: 'gadgets', label: 'Gadgets (pcs)' },
-      { key: 'accessories', label: 'Accessories (pcs)' }
-    ];
-  }
+  // Inventory starts empty for every business type — no assumed items.
+  // The owner adds exactly the products they stock, each with its own
+  // optional unit (kg, L, quintal, etc.) or no unit at all for
+  // count-based items (books, pens, bottles...).
+  function getDefaultInventory(bizType) { return {}; }
+  function getDefaultInventoryLabels(bizType) { return {}; }
+  function getDefaultInventoryUnits(bizType) { return {}; }
 
   // ---------- SUPABASE PERSISTENCE ----------
   // Persists inventory / biz_type / biz_name changes to the `businesses` row.
@@ -704,7 +688,8 @@
       biz_name: currentSession.bizName,
       biz_type: currentSession.bizType,
       inventory: currentSession.inventory,
-      inventory_labels: currentSession.inventoryLabels
+      inventory_labels: currentSession.inventoryLabels,
+      inventory_units: currentSession.inventoryUnits
     }).eq('user_id', currentSession.userId);
     if (error) console.error("Failed to save business data:", error.message);
   }
@@ -722,9 +707,9 @@
 
   function ensureInventoryLabels(session) {
     if (!session) return;
-    session.inventoryLabels = session.inventoryLabels && Object.keys(session.inventoryLabels).length
-      ? session.inventoryLabels
-      : getDefaultInventoryLabels(session.bizType);
+    session.inventory = session.inventory || {};
+    session.inventoryLabels = session.inventoryLabels || {};
+    session.inventoryUnits = session.inventoryUnits || {};
   }
 
   async function clearCurrentBusinessData() {
@@ -740,51 +725,40 @@
     }
 
     currentSession.ledger = [];
-    currentSession.inventory = getDefaultInventory(currentSession.bizType);
-    currentSession.inventoryLabels = getDefaultInventoryLabels(currentSession.bizType);
+    // Inventory is now the shop's real product catalog (no more sample
+    // defaults to fall back to), so "Clear Data" only wipes transaction
+    // history — it no longer touches the inventory items you've added.
     await persist();
     showLoading(false);
     updateDashboard();
     renderLedger();
     rebuildAllCharts();
-    alert("All records cleared. Your sales dashboard is fresh again.");
+    alert("All sales records cleared. Your inventory list was kept as-is.");
   }
 
   function escapeHtml(str) { return String(str).replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
 
-  function getInventorySummary(inv, labels, bizType) {
-    const defaultSummary = (() => {
-      if (bizType === 'grocer') return `${labels.rice || 'Rice'}: ${inv.rice || 0}, ${labels.dal || 'Dal'}: ${inv.dal || 0}, ${labels.oil || 'Oil'}: ${inv.oil || 0}`;
-      if (bizType === 'salon') return `${labels.hairColor || 'Hair Color'}: ${inv.hairColor || 0}, ${labels.shampoo || 'Shampoo'}: ${inv.shampoo || 0}, ${labels.scissors || 'Scissors'}: ${inv.scissors || 0}`;
-      return `${labels.gadgets || 'Gadgets'}: ${inv.gadgets || inv.genericStock || 0}, ${labels.accessories || 'Accessories'}: ${inv.accessories || inv.supplies || 0}`;
-    })();
-
-    const extraItems = Object.keys(inv || {})
-      .filter(key => !['rice', 'dal', 'oil', 'hairColor', 'shampoo', 'scissors', 'gadgets', 'accessories'].includes(key))
-      .map(key => `${labels[key] || key}: ${inv[key] || 0}`);
-
-    return [defaultSummary, ...extraItems].filter(Boolean).join(' • ');
+  function getInventorySummary(inv, labels, units) {
+    const keys = Object.keys(inv || {});
+    if (!keys.length) return "No items yet — click Edit Inventory to add your first product.";
+    return keys.map(key => {
+      const qty = inv[key] || 0;
+      const label = labels[key] || key;
+      const unit = units?.[key];
+      return unit ? `${label}: ${qty} ${unit}` : `${label}: ${qty}`;
+    }).join(' • ');
   }
 
   function getInventoryEntries(session) {
     const inv = session?.inventory || {};
-    const labels = session?.inventoryLabels || getDefaultInventoryLabels(session?.bizType);
-    const fixedFields = getInventoryFieldsForType(session?.bizType || 'other');
-    const entries = [];
-    const fixedKeys = new Set(fixedFields.map(f => f.key));
-
-    fixedFields.forEach(f => {
-      const hasEntry = Object.prototype.hasOwnProperty.call(inv, f.key);
-      entries.push({ key: f.key, label: labels[f.key] || f.label, qty: hasEntry ? Number(inv[f.key]) || 0 : 0 });
-    });
-
-    Object.keys(inv).forEach(key => {
-      if (!fixedKeys.has(key)) {
-        entries.push({ key, label: labels[key] || key, qty: Number(inv[key]) || 0 });
-      }
-    });
-
-    return entries;
+    const labels = session?.inventoryLabels || {};
+    const units = session?.inventoryUnits || {};
+    return Object.keys(inv).map(key => ({
+      key,
+      label: labels[key] || key,
+      qty: Number(inv[key]) || 0,
+      unit: units[key] || ''
+    }));
   }
 
   function generateInventoryKey(name) {
@@ -810,15 +784,17 @@
     const productSelect = document.getElementById("productSelect");
     if (!productSelect || !currentSession) return;
     const inv = currentSession.inventory || {};
-    const labels = currentSession.inventoryLabels || getDefaultInventoryLabels(currentSession.bizType);
+    const labels = currentSession.inventoryLabels || {};
+    const units = currentSession.inventoryUnits || {};
     let productOptions = '<option value="">📦 Select Product</option>';
     Object.keys(inv).forEach(key => {
       const qty = inv[key] || 0;
       const label = labels[key] || key;
+      const unit = units[key] ? ` ${units[key]}` : '';
       if (qty > 0) {
-        productOptions += `<option value="${key}">${label} (${qty} available)</option>`;
+        productOptions += `<option value="${key}">${label} (${qty}${unit} available)</option>`;
       } else {
-        productOptions += `<option value="${key}" disabled>${label} (0 available)</option>`;
+        productOptions += `<option value="${key}" disabled>${label} (0${unit} available)</option>`;
       }
     });
     productSelect.innerHTML = productOptions;
@@ -832,8 +808,9 @@
     const todaySales = currentSession.ledger.filter(t => (t.type === "received" || t.type === "creditPaid") && t.date === today).reduce((s, t) => s + t.amount, 0);
 
     const inv = currentSession.inventory || {};
-    const labels = currentSession.inventoryLabels || getDefaultInventoryLabels(currentSession.bizType);
-    const invSummary = getInventorySummary(inv, labels, currentSession.bizType);
+    const labels = currentSession.inventoryLabels || {};
+    const units = currentSession.inventoryUnits || {};
+    const invSummary = getInventorySummary(inv, labels, units);
 
     document.getElementById("statsDashboard").innerHTML = `
       <div class="stat-card"><div class="stat-title"><i class="fas fa-chart-line"></i> Today's Sales</div><div class="stat-value">₹${todaySales.toLocaleString()}</div></div>
@@ -853,6 +830,7 @@
     if (!currentSession) return;
     const nameEl = document.getElementById('newInvName');
     const qtyEl = document.getElementById('newInvQty');
+    const unitEl = document.getElementById('newInvUnit');
     const name = nameEl?.value.trim();
     if (!name) {
       alert('Please enter a product name.');
@@ -860,11 +838,14 @@
     }
 
     const qty = parseFloat(qtyEl?.value);
+    const unit = unitEl?.value.trim() || '';
     const key = generateInventoryKey(name);
     currentSession.inventory = currentSession.inventory || {};
     currentSession.inventoryLabels = currentSession.inventoryLabels || {};
+    currentSession.inventoryUnits = currentSession.inventoryUnits || {};
     currentSession.inventory[key] = isNaN(qty) ? 0 : Math.max(0, qty);
     currentSession.inventoryLabels[key] = name;
+    currentSession.inventoryUnits[key] = unit;
 
     await persist();
     updateDashboard();
@@ -876,8 +857,8 @@
     const container = document.getElementById('invEditorContainer');
     if (!container || !currentSession) return;
     const entries = getInventoryEntries(currentSession);
-    const formHtml = entries.map(entry => `
-      <div style="margin:10px 0; display:grid; gap:8px; grid-template-columns: 1fr 1fr; align-items:start;">
+    const formHtml = entries.length ? entries.map(entry => `
+      <div style="margin:10px 0; display:grid; gap:8px; grid-template-columns: 1.4fr 1fr 1fr; align-items:start;">
         <div>
           <label style="display:block; font-weight:600; margin-bottom:6px;">Product name</label>
           <input type="text" id="inv_label_${entry.key}" value="${entry.label}" style="width:100%; padding:8px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary);">
@@ -886,18 +867,24 @@
           <label style="display:block; font-weight:600; margin-bottom:6px;">Quantity</label>
           <input type="number" id="inv_qty_${entry.key}" value="${entry.qty}" style="width:100%; padding:8px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary);" min="0">
         </div>
-      </div>`).join('');
+        <div>
+          <label style="display:block; font-weight:600; margin-bottom:6px;">Unit <span style="font-weight:400; color:var(--text-secondary);">(optional)</span></label>
+          <input type="text" id="inv_unit_${entry.key}" value="${entry.unit}" placeholder="kg, L, quintal…" style="width:100%; padding:8px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary);">
+        </div>
+      </div>`).join('') : `<div style="color:var(--text-secondary); padding:8px 0;">No products yet — add your first one below.</div>`;
 
     container.innerHTML = `
       <div id="invForm" style="background:var(--bg-input); padding:12px; border-radius:12px; border:1px solid var(--border);">
         ${formHtml}
         <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
           <div style="font-weight:600; margin-bottom:8px;">Add product to inventory</div>
-          <div style="display:grid; gap:8px; grid-template-columns: 1fr 100px auto; align-items:center;">
-            <input type="text" id="newInvName" placeholder="Product name" style="width:100%; padding:8px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary);">
+          <div style="display:grid; gap:8px; grid-template-columns: 1.4fr 1fr 1fr auto; align-items:center;">
+            <input type="text" id="newInvName" placeholder="Product name (e.g. Rice, Pens)" style="width:100%; padding:8px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary);">
             <input type="number" id="newInvQty" placeholder="Qty" min="0" style="width:100%; padding:8px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary);">
+            <input type="text" id="newInvUnit" placeholder="Unit (optional)" style="width:100%; padding:8px; border-radius:12px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary);">
             <button id="addInvProductBtn" class="btn-auth" style="padding:8px 12px; border-radius:12px; font-size:0.95rem;">Add</button>
           </div>
+          <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:6px;">Leave unit blank for count-based items like books or pens. Use kg, L, quintal, dozen, etc. for weighed/measured items.</div>
         </div>
         <div style="display:flex; gap:8px; margin-top:8px;"><button id="saveInvBtn" class="btn-auth" style="padding:8px 12px; border-radius:12px; font-size:0.95rem;">Save</button><button id="cancelInvBtn" class="theme-toggle" style="padding:8px 12px; border-radius:12px;">Cancel</button></div>
       </div>
@@ -931,15 +918,20 @@
     if (!currentSession) return;
     currentSession.inventory = currentSession.inventory || {};
     currentSession.inventoryLabels = currentSession.inventoryLabels || {};
+    currentSession.inventoryUnits = currentSession.inventoryUnits || {};
     entries.forEach(entry => {
       const qtyEl = document.getElementById('inv_qty_' + entry.key);
       const labelEl = document.getElementById('inv_label_' + entry.key);
+      const unitEl = document.getElementById('inv_unit_' + entry.key);
       if (qtyEl) {
         const v = parseFloat(qtyEl.value);
         currentSession.inventory[entry.key] = isNaN(v) ? 0 : Math.max(0, v);
       }
       if (labelEl) {
         currentSession.inventoryLabels[entry.key] = labelEl.value.trim() || entry.label;
+      }
+      if (unitEl) {
+        currentSession.inventoryUnits[entry.key] = unitEl.value.trim();
       }
     });
     await persist();
@@ -1423,6 +1415,16 @@
     });
   });
 
+  // Show/hide the "please specify" text box when Other is picked at registration
+  document.getElementById("regBizType").addEventListener("change", e => {
+    const otherGroup = document.getElementById("regBizTypeOtherGroup");
+    const otherInput = document.getElementById("regBizTypeOther");
+    const isOther = e.target.value === "other";
+    otherGroup.style.display = isOther ? "block" : "none";
+    if (isOther) { otherInput.setAttribute("required", "required"); otherInput.focus(); }
+    else { otherInput.removeAttribute("required"); otherInput.value = ""; }
+  });
+
   // ---------- SUPABASE AUTH: LOGIN ----------
   document.getElementById("loginFormElement").addEventListener("submit", async e => {
     e.preventDefault();
@@ -1443,13 +1445,25 @@
   document.getElementById("registerFormElement").addEventListener("submit", async e => {
     e.preventDefault();
     const bizName = document.getElementById("regBizName").value.trim();
-    const bizType = document.getElementById("regBizType").value;
+    const selectedType = document.getElementById("regBizType").value;
     const email = document.getElementById("regEmail").value.trim();
     const pwd = document.getElementById("regPassword").value;
     const errEl = document.getElementById("regError");
     const infoEl = document.getElementById("regInfo");
     errEl.innerText = "";
     infoEl.innerText = "";
+
+    // If "Other" is picked, the actual business type is whatever the
+    // owner typed — this becomes the real biz_type value (not the
+    // generic word "other"), so their dashboard shows their real
+    // category and isn't grouped in with everyone else's "Other".
+    let bizType = selectedType;
+    if (selectedType === "other") {
+      const customType = document.getElementById("regBizTypeOther").value.trim();
+      if (!customType) { errEl.innerText = "Please specify your business type."; return; }
+      bizType = customType;
+    }
+
     const btn = document.getElementById("regSubmitBtn");
     btn.disabled = true;
 
@@ -1493,8 +1507,9 @@
         user_id: user.id,
         biz_name: user.email.split('@')[0],
         biz_type: defaultType,
-        inventory: getDefaultInventory(defaultType),
-        inventory_labels: getDefaultInventoryLabels(defaultType)
+        inventory: {},
+        inventory_labels: {},
+        inventory_units: {}
       };
       const { data: newBiz } = await sb.from('businesses').insert(insertPayload).select().single();
       biz = newBiz;
@@ -1512,6 +1527,7 @@
       bizType: biz.biz_type,
       inventory: biz.inventory || {},
       inventoryLabels: biz.inventory_labels || {},
+      inventoryUnits: biz.inventory_units || {},
       ledger: (txns || []).map(t => ({
         id: t.id,
         customer: t.customer,
@@ -1529,12 +1545,34 @@
     showLoading(false);
     document.getElementById("authContainer").style.display = "none";
     document.getElementById("mainApp").style.display = "block";
-    document.getElementById("businessTypeSelect").value = currentSession.bizType;
+    populateBusinessTypeSelect(currentSession);
     initTxnDateField();
     updateDashboard();
     updateProductDropdown();
     renderLedger();
     rebuildAllCharts();
+  }
+
+  // Builds the top-bar category dropdown so it never shows a confusing
+  // generic "Other" for someone who already told us their real type at
+  // signup — their own category always appears (and is selected) first.
+  function populateBusinessTypeSelect(session) {
+    const select = document.getElementById("businessTypeSelect");
+    if (!select || !session) return;
+    const presetValues = ['grocer', 'salon', 'other'];
+    let optionsHtml = '';
+    if (!presetValues.includes(session.bizType)) {
+      const label = session.bizType.charAt(0).toUpperCase() + session.bizType.slice(1);
+      optionsHtml += `<option value="${escapeHtml(session.bizType)}">🏷️ ${escapeHtml(label)}</option>`;
+    }
+    optionsHtml += `
+      <option value="grocer">🥬 Grocery</option>
+      <option value="salon">💇 Salon</option>
+      <option value="other">🏢 Other (specify)</option>
+    `;
+    select.innerHTML = optionsHtml;
+    select.value = session.bizType;
+    document.getElementById("businessTypeOtherInput").style.display = "none";
   }
 
   // ---------- LOGOUT ----------
@@ -1551,17 +1589,38 @@
 
   document.getElementById("addTransactionBtn").addEventListener("click", addTransaction);
 
+  // Switching category no longer touches inventory at all — the product
+  // catalog is independent of category, so changing this never injects
+  // or resets items.
   document.getElementById("businessTypeSelect").addEventListener("change", async e => {
-    if (currentSession) {
-      currentSession.bizType = e.target.value;
-      if (currentSession.bizType === "grocer" && !currentSession.inventory.rice) currentSession.inventory = getDefaultInventory("grocer");
-      else if (currentSession.bizType === "salon" && !currentSession.inventory.hairColor) currentSession.inventory = getDefaultInventory("salon");
-      else if (currentSession.bizType === "other" && !currentSession.inventory.gadgets) currentSession.inventory = getDefaultInventory("other");
-      await persist();
-      updateDashboard();
-      updateProductDropdown();
+    if (!currentSession) return;
+    const otherInput = document.getElementById("businessTypeOtherInput");
+    if (e.target.value === "other") {
+      otherInput.style.display = "inline-block";
+      otherInput.value = "";
+      otherInput.focus();
+      return; // wait for them to type their real type below
     }
+    otherInput.style.display = "none";
+    currentSession.bizType = e.target.value;
+    await persist();
+    populateBusinessTypeSelect(currentSession);
+    updateDashboard();
   });
+
+  async function commitCustomBizType() {
+    const otherInput = document.getElementById("businessTypeOtherInput");
+    const val = otherInput.value.trim();
+    if (!val || !currentSession) { populateBusinessTypeSelect(currentSession); return; }
+    currentSession.bizType = val;
+    await persist();
+    populateBusinessTypeSelect(currentSession);
+    updateDashboard();
+  }
+  document.getElementById("businessTypeOtherInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); commitCustomBizType(); }
+  });
+  document.getElementById("businessTypeOtherInput").addEventListener("blur", commitCustomBizType);
 
   // ---------- BOOTSTRAP: resume an existing Supabase session on page load ----------
   (async () => {
