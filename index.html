@@ -578,7 +578,11 @@
           <option value="credit">📝 Give Credit (Udhaar)</option>
           <option value="creditPaid">✅ Credit Repaid</option>
         </select>
+        <input type="date" id="txnDate" style="flex:1;" title="Defaults to today — change to backdate an older sale">
         <button id="addTransactionBtn"><i class="fas fa-plus-circle"></i> Record</button>
+      </div>
+      <div style="margin: -8px 0 4px; font-size: 0.8rem; color: var(--text-secondary);">
+        📅 Date defaults to today. Pick an earlier date to log a past sale (e.g. entering yesterday's or last week's transactions).
       </div>
       <div style="overflow-x: auto;">
         <table id="ledgerTable">
@@ -794,6 +798,14 @@
     return key;
   }
 
+  function initTxnDateField() {
+    const dateInput = document.getElementById("txnDate");
+    if (!dateInput) return;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    dateInput.max = todayStr;
+    if (!dateInput.value) dateInput.value = todayStr;
+  }
+
   function updateProductDropdown() {
     const productSelect = document.getElementById("productSelect");
     if (!productSelect || !currentSession) return;
@@ -960,7 +972,11 @@
     const product = document.getElementById("productSelect").value.trim();
     const productQty = parseInt(document.getElementById("productQuantity").value) || 0;
     if (!cust || isNaN(amount) || amount <= 0) { alert("Enter valid customer & amount"); return; }
-    const today = new Date().toISOString().slice(0, 10);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const dateInput = document.getElementById("txnDate");
+    const chosenDate = dateInput.value || todayStr;
+    if (chosenDate > todayStr) { alert("Sale date can't be in the future."); return; }
+    const today = chosenDate; // keeps the rest of this function unchanged — "today" now means "the date this sale is recorded for"
 
     let relatedCreditRow = null;
     if (txnType === "creditPaid") {
@@ -1437,22 +1453,19 @@
     const btn = document.getElementById("regSubmitBtn");
     btn.disabled = true;
 
-    const { data, error } = await sb.auth.signUp({ email, password: pwd });
-    if (error) { btn.disabled = false; errEl.innerText = error.message; return; }
-
-    const userId = data.user?.id;
-    if (userId) {
-      const { error: insertErr } = await sb.from('businesses').insert({
-        user_id: userId,
-        biz_name: bizName,
-        biz_type: bizType,
-        inventory: getDefaultInventory(bizType),
-        inventory_labels: getDefaultInventoryLabels(bizType)
-      });
-      if (insertErr) { btn.disabled = false; errEl.innerText = insertErr.message; return; }
-    }
-
+    // biz_name / biz_type ride along as signup metadata — a database
+    // trigger (see bizzhub_supabase_schema.sql) reads this and creates
+    // the businesses row server-side, so it works even before the user
+    // has a session (e.g. while email confirmation is still pending).
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password: pwd,
+      options: {
+        data: { biz_name: bizName, biz_type: bizType }
+      }
+    });
     btn.disabled = false;
+    if (error) { errEl.innerText = error.message; return; }
 
     if (data.session) {
       // Email confirmation is off -> user is already logged in
@@ -1517,6 +1530,7 @@
     document.getElementById("authContainer").style.display = "none";
     document.getElementById("mainApp").style.display = "block";
     document.getElementById("businessTypeSelect").value = currentSession.bizType;
+    initTxnDateField();
     updateDashboard();
     updateProductDropdown();
     renderLedger();
